@@ -1,0 +1,8 @@
+{
+  "name": "SimVeritas 1.52",
+  "description": "An advanced medical simulation platform featuring real-time AI avatars for clinical training. Version 1.52 introduces ergonomic UI refinements and scenario progression phases.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

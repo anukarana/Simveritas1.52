@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: sync
+    // Document ID: simulation
+    // Fields:
+    //   - type: string (required)
+    //   - isSimulating: bool (required)
+    //   - config: map (optional)
+    //   - sessionTimestamp: number (optional)
+    //   - lastUpdate: number (required)
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string (optional)
+    //   - photoURL: string (optional)
+    //   - role: string (required, enum: ["admin", "facilitator", "learner"])
+    //   - createdAt: number (required)
+    //   - lastLogin: number (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (request.auth.token.email == "ai.anukaran@gmail.com" && request.auth.token.email_verified == true ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email', 'role', 'createdAt', 'lastLogin']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'facilitator', 'learner'] &&
+             data.createdAt is number &&
+             data.lastLogin is number;
+    }
+
+    function isValidSyncData(data, docId) {
+      return (docId == 'simulation' || docId == 'room_state') ? 
+               (hasRequiredFields(['type', 'isSimulating', 'lastUpdate']) &&
+                data.type is string &&
+                data.isSimulating is bool &&
+                data.lastUpdate is number) :
+             (docId == 'room_avatar') ?
+               (hasRequiredFields(['lastUpdate']) &&
+                data.lastUpdate is number) :
+             (docId == 'room_requests' || docId == 'room_assets') ?
+               (hasRequiredFields(['lastUpdate']) &&
+                data.lastUpdate is number) :
+             (hasRequiredFields(['lastUpdate']) && data.lastUpdate is number);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Sync documents: used for real-time simulation state
+    match /sync/{docId} {
+      // Simulation state is readable by anyone (learners and facilitators) during development bypass
+      allow read: if true;
+      
+      // Anyone can update the simulation state during development bypass
+      allow write: if true;
+    }
+
+    // Sessions and Rooms: similar to sync but for specific instances
+    match /sessions/{sessionId} {
+      allow read, write: if true;
+    }
+
+    match /rooms/{sessionId} {
+      allow read, write: if true;
+    }
+
+    // Users collection: private profile data
+    match /users/{userId} {
+      // Users can only read their own profile
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Users can create/update their own profile, but cannot change their role to admin unless they are already admin
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role != 'admin' || isAdmin());
+                    
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role == resource.data.role || isAdmin());
+    }
+  }
+}

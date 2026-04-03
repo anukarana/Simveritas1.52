@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "RoomState": {
+      "title": "Room State",
+      "description": "Detailed real-time state of the simulation room and session",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "history": { "type": "array" },
+        "clinicalAssets": { "type": "array" },
+        "phaseIndex": { "type": "number" },
+        "isLive": { "type": "boolean" },
+        "isConnecting": { "type": "boolean" },
+        "statusMsg": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "scenarioTitle": { "type": "string" },
+        "patientName": { "type": "string" },
+        "lastUpdate": { "type": "number" },
+        "isSimulating": { "type": "boolean" },
+        "config": { "type": "object" },
+        "sessionTimestamp": { "type": "number" },
+        "isComplete": { "type": "boolean" }
+      }
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "facilitator", "learner"] },
+        "createdAt": { "type": "number" },
+        "lastLogin": { "type": "number" }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/sync/simulation": {
+      "schema": "RoomState",
+      "description": "Real-time sync for the active simulation"
+    },
+    "/sync/room_state": {
+      "schema": "RoomState",
+      "description": "Real-time sync for the active room state"
+    },
+    "/sync/room_avatar": {
+      "schema": "object",
+      "description": "Real-time sync for the active room avatar"
+    },
+    "/sync/room_requests": {
+      "schema": "object",
+      "description": "Real-time sync for the active room requests"
+    },
+    "/sync/room_assets": {
+      "schema": "object",
+      "description": "Real-time sync for large clinical assets"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "RoomState",
+      "description": "Active simulation sessions"
+    },
+    "/rooms/{sessionId}": {
+      "schema": "RoomState",
+      "description": "Real-time room state for a session"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    }
+  }
+}
