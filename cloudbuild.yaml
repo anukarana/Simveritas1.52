@@ -1,0 +1,37 @@
+steps:
+  # Step 1: Build the Docker image using the Dockerfile in the repo root
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--no-cache'
+      - '-t'
+      - 'us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/simveritas1.52/simveritas1-52:$COMMIT_SHA'
+      - '.'
+
+  # Step 2: Push the image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/simveritas1.52/simveritas1-52:$COMMIT_SHA'
+
+  # Step 3: Deploy to Cloud Run — explicitly set port 8080
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'simveritas1-52'
+      - '--image=us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/simveritas1.52/simveritas1-52:$COMMIT_SHA'
+      - '--region=us-east5'
+      - '--platform=managed'
+      - '--port=8080'
+      - '--allow-unauthenticated'
+      - '--memory=2Gi'
+      - '--cpu=2'
+      - '--timeout=300'
+
+images:
+  - 'us-east5-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/simveritas1.52/simveritas1-52:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
