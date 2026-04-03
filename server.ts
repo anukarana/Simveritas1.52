@@ -25,7 +25,7 @@ async function startServer() {
     },
     maxHttpBufferSize: 1e7 // 10MB limit for large payloads
   });
-  const PORT = 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
   // Socket.io logic
   io.on("connection", (socket) => {
