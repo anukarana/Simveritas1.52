@@ -555,7 +555,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(__dirname, "dist")));
+  app.use(express.static(path.join(__dirname, "dist"), { index: false }));
     app.get('*all', (req, res) => {
       const indexPath = path.join(__dirname, "dist", "index.html");
       let html = fs.readFileSync(indexPath, "utf-8");
