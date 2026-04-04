@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { GoogleGenAI, Type } from '@google/genai';
-import { getApiKey, clearApiKeyCache } from './apiKey';
+import { getApiKey, clearApiKeyCache, saveApiKey } from './apiKey';
 import { Scenario, SimulationConfig, TranscriptionEntry, FeedbackReport, SimulationRoomHandle, SavedReport, AnalyticsData, SimulationStatus, DashboardHandle, NCBISource, CognitiveTrait, Emotion } from './types';
 import { DEFAULT_SCENARIOS, VOICE_PROFILES } from './constants';
 import Dashboard from './Dashboard';
@@ -694,12 +694,10 @@ const App: React.FC = () => {
       if (key) { setHasApiKey(true); clearApiKeyCache(); }
       return;
     }
-    // Cloud Run / standalone: use manually entered key
     const trimmed = manualApiKeyInput.trim();
     if (!trimmed) { setApiKeyError('Please enter your Gemini API key.'); return; }
     if (!trimmed.startsWith('AIza')) { setApiKeyError('Invalid key format. Gemini API keys start with "AIza".'); return; }
-    (window as any).__API_KEY__ = trimmed;
-    (window as any).__GEMINI_API_KEY__ = trimmed;
+    saveApiKey(trimmed);
     setApiKeyError('');
     setHasApiKey(true);
   };
